@@ -13,6 +13,7 @@ const firebaseConfig = {
   storageBucket: "school-transport-ae17e.firebasestorage.app",
   messagingSenderId: "977609305371",
   appId: "1:977609305371:web:e54eba1fdae7608f42b7be"
+  // Nota: La configuración de Firebase mantiene el nombre original del proyecto
 };
 
 // Inicializar Firebase
