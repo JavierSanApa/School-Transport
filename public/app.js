@@ -1,8 +1,8 @@
 // Importar Firebase desde CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, updateDoc } 
+import { getFirestore, collection, getDocs, doc, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 // ⚡ Aquí pegas tu configuración de Firebase
@@ -48,7 +48,7 @@ onAuthStateChanged(auth, async (user) => {
     // Ocultar sección de login y bienvenida
     loginSection.classList.add("d-none");
     welcomeSection.classList.add("d-none");
-    
+
     // Mostrar sección de usuario y niños
     userSection.classList.remove("d-none");
     childrenSection.classList.remove("d-none");
@@ -64,14 +64,14 @@ onAuthStateChanged(auth, async (user) => {
         <p class="mt-2">Cargando lista de niños...</p>
       </li>
     `;
-    
+
     // Cargar niños desde Firestore
     try {
       const snapshot = await getDocs(collection(db, "children"));
-      
+
       // Limpiar el indicador de carga
       childrenList.innerHTML = "";
-      
+
       // Si no hay niños, mostrar mensaje
       if (snapshot.empty) {
         childrenList.innerHTML = `
@@ -82,67 +82,71 @@ onAuthStateChanged(auth, async (user) => {
         `;
         return;
       }
-    snapshot.forEach(docSnap => {
-      const child = docSnap.data();
-      const li = document.createElement("li");
-      li.className = "list-group-item";
-      
-      // Crear un contenedor para la información del niño
-      const childInfo = document.createElement("div");
-      childInfo.className = "d-flex align-items-center";
-      
-      // Añadir icono y nombre del niño con estilo
+      snapshot.forEach(docSnap => {
+        const child = docSnap.data();
+        const li = document.createElement("li");
+        li.className = "list-group-item";
+
+        // Crear un contenedor para la información del niño
+        const childInfo = document.createElement("div");
+        childInfo.className = "d-flex align-items-center";
+
+        // Añadir icono y nombre del niño con estilo
       childInfo.innerHTML = `
-        <i class="bi bi-person-badge me-2 fs-5 text-primary"></i>
+        <i class="bi bi-person-badge me-3 fs-4 text-primary"></i>
         <div>
-          <strong>${child.name}</strong>
-          <span class="ms-2 badge ${child.status === 'recogido' ? 'bg-success' : 'bg-warning'} rounded-pill">
+          <p class="mb-1"><strong>Nombre:</strong> ${child.name}</p>
+          <p class="mb-1"><strong>Dirección:</strong> ${child.address}</p>
+          <p class="mb-1"><strong>Teléfono:</strong> ${child.phone}</p>
+          <p class="mb-1"><strong>Email:</strong> ${child.email}</p>
+          <span class="badge ${child.status === 'recogido' ? 'bg-success' : 'bg-warning'} rounded-pill">
             ${child.status || "pendiente"}
           </span>
         </div>
       `;
-      
-      // Crear botón con icono
-      const button = document.createElement("button");
-      button.className = "btn btn-sm btn-success mt-2 mt-sm-0";
-      button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
-      
-      // Si ya está recogido, deshabilitar el botón
-      if (child.status === 'recogido') {
-        button.disabled = true;
-        button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
-        button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Recogido`;
-      }
-      
-      // Añadir elementos al li
-      li.appendChild(childInfo);
-      li.appendChild(button);
 
-      button.addEventListener("click", async () => {
-        try {
+
+        // Crear botón con icono
+        const button = document.createElement("button");
+        button.className = "btn btn-sm btn-success mt-2 mt-sm-0";
+        button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
+
+        // Si ya está recogido, deshabilitar el botón
+        if (child.status === 'recogido') {
           button.disabled = true;
-          button.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Actualizando...`;
-          
-          await updateDoc(doc(db, "children", docSnap.id), {
-            status: "recogido"
-          });
-          
-          // Actualizar la UI
-          const statusBadge = childInfo.querySelector('.badge');
-          statusBadge.className = "ms-2 badge bg-success rounded-pill";
-          statusBadge.textContent = "recogido";
-          
           button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
           button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Recogido`;
-        } catch (error) {
-          console.error("Error al actualizar:", error);
-          button.disabled = false;
-          button.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Error, reintentar`;
         }
-      });
 
-      childrenList.appendChild(li);
-    });
+        // Añadir elementos al li
+        li.appendChild(childInfo);
+        li.appendChild(button);
+
+        button.addEventListener("click", async () => {
+          try {
+            button.disabled = true;
+            button.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Actualizando...`;
+
+            await updateDoc(doc(db, "children", docSnap.id), {
+              status: "recogido"
+            });
+
+            // Actualizar la UI
+            const statusBadge = childInfo.querySelector('.badge');
+            statusBadge.className = "ms-2 badge bg-success rounded-pill";
+            statusBadge.textContent = "recogido";
+
+            button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
+            button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Recogido`;
+          } catch (error) {
+            console.error("Error al actualizar:", error);
+            button.disabled = false;
+            button.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> Error, reintentar`;
+          }
+        });
+
+        childrenList.appendChild(li);
+      });
     } catch (error) {
       console.error("Error al cargar los niños:", error);
       childrenList.innerHTML = `
@@ -154,11 +158,11 @@ onAuthStateChanged(auth, async (user) => {
           </button>
         </li>
       `;
-      
+
       // Añadir evento para reintentar
       document.getElementById("retry-btn").addEventListener("click", () => {
         // Simular un cambio en el estado de autenticación para recargar
-        onAuthStateChanged(auth, () => {});
+        onAuthStateChanged(auth, () => { });
       });
     }
 
@@ -166,7 +170,7 @@ onAuthStateChanged(auth, async (user) => {
     // Mostrar sección de login y bienvenida
     loginSection.classList.remove("d-none");
     welcomeSection.classList.remove("d-none");
-    
+
     // Ocultar sección de usuario y niños
     userSection.classList.add("d-none");
     childrenSection.classList.add("d-none");
