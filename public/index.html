@@ -45,16 +45,20 @@
       </div>
       
       <!-- Lista de niños -->
-      <div id="children-section" class="mt-4 d-none">
-        <div class="card shadow-sm">
-          <div class="card-header bg-light">
-            <h2 class="h4 mb-0"><i class="bi bi-people me-2"></i>Listado de Niños</h2>
-          </div>
-          <div class="card-body p-0">
-            <ul id="children-list" class="list-group list-group-flush"></ul>
-          </div>
+    <div id="children-section" class="mt-4 d-none">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h2 class="h4 mb-0"><i class="bi bi-people me-2"></i>Listado de Niños</h2>
+          <button id="reset-btn" class="btn btn-warning btn-sm">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Resetear a pendiente
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <ul id="children-list" class="list-group list-group-flush"></ul>
         </div>
       </div>
+    </div>
+
     </main>
 
      <footer class="mt-auto py-3 text-center text-muted">

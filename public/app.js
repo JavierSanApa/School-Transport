@@ -1,11 +1,11 @@
 // Importar Firebase desde CDN
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, updateDoc }
+import { getFirestore, collection, getDocs, doc, updateDoc } 
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
-// ⚡ Aquí pegas tu configuración de Firebase
+// ⚡ Configuración de Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAwmwaFOCadhTo-djyfFxDFgCPoKd1-rbs",
   authDomain: "school-transport-ae17e.firebaseapp.com",
@@ -13,7 +13,6 @@ const firebaseConfig = {
   storageBucket: "school-transport-ae17e.firebasestorage.app",
   messagingSenderId: "977609305371",
   appId: "1:977609305371:web:e54eba1fdae7608f42b7be"
-  // Nota: La configuración de Firebase mantiene el nombre original del proyecto
 };
 
 // Inicializar Firebase
@@ -82,6 +81,7 @@ onAuthStateChanged(auth, async (user) => {
         `;
         return;
       }
+
       snapshot.forEach(docSnap => {
         const child = docSnap.data();
         const li = document.createElement("li");
@@ -91,53 +91,70 @@ onAuthStateChanged(auth, async (user) => {
         const childInfo = document.createElement("div");
         childInfo.className = "d-flex align-items-center";
 
-        // Añadir icono y nombre del niño con estilo
-      childInfo.innerHTML = `
-        <i class="bi bi-person-badge me-3 fs-4 text-primary"></i>
-        <div>
-          <p class="mb-1"><strong>Nombre:</strong> ${child.name}</p>
-          <p class="mb-1"><strong>Dirección:</strong> ${child.address}</p>
-          <p class="mb-1"><strong>Teléfono:</strong> ${child.phone}</p>
-          <p class="mb-1"><strong>Email:</strong> ${child.email}</p>
-          <span class="badge ${child.status === 'recogido' ? 'bg-success' : 'bg-warning'} rounded-pill">
-            ${child.status || "pendiente"}
-          </span>
-        </div>
-      `;
+        // Información del niño
+        childInfo.innerHTML = `
+          <i class="bi bi-person-badge me-3 fs-4 text-primary"></i>
+          <div>
+            <p class="mb-1"><strong>Nombre:</strong> ${child.name}</p>
+            <p class="mb-1"><strong>Dirección:</strong> ${child.address}</p>
+            <p class="mb-1"><strong>Teléfono:</strong> ${child.phone}</p>
+            <p class="mb-1"><strong>Email:</strong> ${child.email}</p>
+            <span class="badge ${child.status === 'recogido' ? 'bg-success' : child.status === 'entregado' ? 'bg-primary' : 'bg-warning'} rounded-pill">
+              ${child.status || "pendiente"}
+            </span>
+          </div>
+        `;
 
-
-        // Crear botón con icono
+        // Crear botón dinámico
         const button = document.createElement("button");
-        button.className = "btn btn-sm btn-success mt-2 mt-sm-0";
-        button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
+        button.className = "btn btn-sm mt-2 mt-sm-0";
 
-        // Si ya está recogido, deshabilitar el botón
         if (child.status === 'recogido') {
+          button.classList.add("btn-warning");
+          button.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar como entregado`;
+        } else if (child.status === 'entregado') {
           button.disabled = true;
           button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
-          button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Recogido`;
+          button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Entregado`;
+        } else {
+          button.classList.add("btn-success");
+          button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
         }
 
-        // Añadir elementos al li
-        li.appendChild(childInfo);
-        li.appendChild(button);
-
+        // Evento del botón
         button.addEventListener("click", async () => {
           try {
             button.disabled = true;
             button.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Actualizando...`;
 
-            await updateDoc(doc(db, "children", docSnap.id), {
-              status: "recogido"
-            });
+            let newStatus;
+            if (child.status === 'pendiente' || !child.status) {
+              newStatus = 'recogido';
+            } else if (child.status === 'recogido') {
+              newStatus = 'entregado';
+            }
 
-            // Actualizar la UI
+            await updateDoc(doc(db, "children", docSnap.id), { status: newStatus });
+
+            // Actualizar UI
             const statusBadge = childInfo.querySelector('.badge');
-            statusBadge.className = "ms-2 badge bg-success rounded-pill";
-            statusBadge.textContent = "recogido";
+            if (newStatus === 'recogido') {
+              statusBadge.className = "ms-2 badge bg-success rounded-pill";
+              statusBadge.textContent = "recogido";
 
-            button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
-            button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Recogido`;
+              button.disabled = false;
+              button.className = "btn btn-sm btn-warning mt-2 mt-sm-0";
+              button.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar como entregado`;
+              child.status = 'recogido';
+            } else if (newStatus === 'entregado') {
+              statusBadge.className = "ms-2 badge bg-primary rounded-pill";
+              statusBadge.textContent = "entregado";
+
+              button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
+              button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Entregado`;
+              button.disabled = true;
+              child.status = 'entregado';
+            }
           } catch (error) {
             console.error("Error al actualizar:", error);
             button.disabled = false;
@@ -145,8 +162,12 @@ onAuthStateChanged(auth, async (user) => {
           }
         });
 
+        // Añadir elementos a la lista
+        li.appendChild(childInfo);
+        li.appendChild(button);
         childrenList.appendChild(li);
       });
+
     } catch (error) {
       console.error("Error al cargar los niños:", error);
       childrenList.innerHTML = `
@@ -159,10 +180,8 @@ onAuthStateChanged(auth, async (user) => {
         </li>
       `;
 
-      // Añadir evento para reintentar
       document.getElementById("retry-btn").addEventListener("click", () => {
-        // Simular un cambio en el estado de autenticación para recargar
-        onAuthStateChanged(auth, () => { });
+        onAuthStateChanged(auth, () => {});
       });
     }
 
@@ -176,3 +195,36 @@ onAuthStateChanged(auth, async (user) => {
     childrenSection.classList.add("d-none");
   }
 });
+
+// Botón resetear estados a "pendiente"
+const resetBtn = document.getElementById("reset-btn");
+
+if (resetBtn) {
+  resetBtn.addEventListener("click", async () => {
+    resetBtn.disabled = true;
+    resetBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Reseteando...`;
+
+    try {
+      const snapshot = await getDocs(collection(db, "children"));
+      const updates = snapshot.docs.map(docSnap =>
+        updateDoc(doc(db, "children", docSnap.id), { status: "pendiente" })
+      );
+      await Promise.all(updates);
+
+      alert("✅ Todos los niños han sido reseteados a pendiente");
+
+      // Recargar la página
+      location.reload();
+
+      // Recargar la lista en pantalla
+      onAuthStateChanged(auth, () => {});
+
+    } catch (error) {
+      console.error("Error al resetear:", error);
+      alert("❌ Error al resetear los estados");
+    } finally {
+      resetBtn.disabled = false;
+      resetBtn.innerHTML = `<i class="bi bi-arrow-counterclockwise me-1"></i> Resetear a pendiente`;
+    }
+  });
+}
