@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "firebase": "^12.2.1"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "firebase": "^12.2.1",
+    "nodemailer": "^7.0.6"
   }
 }

@@ -30,31 +30,49 @@ const childrenSection = document.getElementById("children-section");
 const childrenList = document.getElementById("children-list");
 const welcomeSection = document.getElementById("welcome-section");
 
-// Login con Google
+// ----------------- FUNCION DE ENVÍO DE EMAIL -----------------
+const sendEmail = async (to, subject, text) => {
+  try {
+    const apiUrl = "https://school-transport.vercel.app/api/sendEmail"; // URL absoluta a Vercel
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject, text })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || response.statusText);
+    }
+
+    console.log(`Correo enviado a ${to} con asunto "${subject}"`);
+    return true;
+  } catch (error) {
+    console.error(`Error al enviar correo a ${to}:`, error);
+    return false;
+  }
+};
+
+// ----------------- LOGIN Y LOGOUT -----------------
 loginBtn.addEventListener("click", async () => {
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
 });
 
-// Logout
 logoutBtn.addEventListener("click", async () => {
   await signOut(auth);
 });
 
-// Detectar usuario logueado
+// ----------------- DETECCIÓN DE USUARIO -----------------
 onAuthStateChanged(auth, async (user) => {
   if (user) {
-    // Ocultar sección de login y bienvenida
     loginSection.classList.add("d-none");
     welcomeSection.classList.add("d-none");
-
-    // Mostrar sección de usuario y niños
     userSection.classList.remove("d-none");
     childrenSection.classList.remove("d-none");
 
     userInfo.innerHTML = `<i class="bi bi-person-circle me-1"></i> Hola, <span class="text-primary">${user.displayName}</span>`;
 
-    // Mostrar indicador de carga
     childrenList.innerHTML = `
       <li class="list-group-item text-center py-4">
         <div class="spinner-border text-primary" role="status">
@@ -64,14 +82,10 @@ onAuthStateChanged(auth, async (user) => {
       </li>
     `;
 
-    // Cargar niños desde Firestore
     try {
       const snapshot = await getDocs(collection(db, "children"));
-
-      // Limpiar el indicador de carga
       childrenList.innerHTML = "";
 
-      // Si no hay niños, mostrar mensaje
       if (snapshot.empty) {
         childrenList.innerHTML = `
           <li class="list-group-item text-center py-4">
@@ -87,11 +101,9 @@ onAuthStateChanged(auth, async (user) => {
         const li = document.createElement("li");
         li.className = "list-group-item";
 
-        // Crear un contenedor para la información del niño
         const childInfo = document.createElement("div");
         childInfo.className = "d-flex align-items-center";
 
-        // Información del niño
         childInfo.innerHTML = `
           <i class="bi bi-person-badge me-3 fs-4 text-primary"></i>
           <div>
@@ -105,7 +117,6 @@ onAuthStateChanged(auth, async (user) => {
           </div>
         `;
 
-        // Crear botón dinámico
         const button = document.createElement("button");
         button.className = "btn btn-sm mt-2 mt-sm-0";
 
@@ -121,40 +132,41 @@ onAuthStateChanged(auth, async (user) => {
           button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
         }
 
-        // Evento del botón
         button.addEventListener("click", async () => {
           try {
             button.disabled = true;
             button.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Actualizando...`;
 
-            let newStatus;
-            if (child.status === 'pendiente' || !child.status) {
-              newStatus = 'recogido';
-            } else if (child.status === 'recogido') {
-              newStatus = 'entregado';
-            }
-
+            let newStatus = child.status === 'pendiente' || !child.status ? 'recogido' : 'entregado';
             await updateDoc(doc(db, "children", docSnap.id), { status: newStatus });
 
-            // Actualizar UI
+            if (child.email) {
+              let emailSubject = newStatus === 'recogido'
+                ? "CODI Transport - Niño recogido"
+                : "CODI Transport - Niño entregado en el colegio";
+              let emailText = newStatus === 'recogido'
+                ? `Estimado/a responsable de ${child.name},\n\nLe informamos que ${child.name} ha sido recogido/a por el transporte escolar.\n\nSaludos cordiales,\nEquipo CODI Transport`
+                : `Estimado/a responsable de ${child.name},\n\nLe informamos que ${child.name} ha sido entregado/a en el colegio.\n\nSaludos cordiales,\nEquipo CODI Transport`;
+
+              await sendEmail(child.email, emailSubject, emailText);
+            }
+
             const statusBadge = childInfo.querySelector('.badge');
             if (newStatus === 'recogido') {
               statusBadge.className = "ms-2 badge bg-success rounded-pill";
               statusBadge.textContent = "recogido";
-
-              button.disabled = false;
               button.className = "btn btn-sm btn-warning mt-2 mt-sm-0";
               button.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar como entregado`;
-              child.status = 'recogido';
-            } else if (newStatus === 'entregado') {
+              button.disabled = false;
+            } else {
               statusBadge.className = "ms-2 badge bg-primary rounded-pill";
               statusBadge.textContent = "entregado";
-
               button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
               button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Entregado`;
               button.disabled = true;
-              child.status = 'entregado';
             }
+            child.status = newStatus;
+
           } catch (error) {
             console.error("Error al actualizar:", error);
             button.disabled = false;
@@ -162,7 +174,6 @@ onAuthStateChanged(auth, async (user) => {
           }
         });
 
-        // Añadir elementos a la lista
         li.appendChild(childInfo);
         li.appendChild(button);
         childrenList.appendChild(li);
@@ -179,24 +190,20 @@ onAuthStateChanged(auth, async (user) => {
           </button>
         </li>
       `;
-
       document.getElementById("retry-btn").addEventListener("click", () => {
         onAuthStateChanged(auth, () => {});
       });
     }
 
   } else {
-    // Mostrar sección de login y bienvenida
     loginSection.classList.remove("d-none");
     welcomeSection.classList.remove("d-none");
-
-    // Ocultar sección de usuario y niños
     userSection.classList.add("d-none");
     childrenSection.classList.add("d-none");
   }
 });
 
-// Botón resetear estados a "pendiente"
+// ----------------- RESET -----------------
 const resetBtn = document.getElementById("reset-btn");
 
 if (resetBtn) {
@@ -206,18 +213,19 @@ if (resetBtn) {
 
     try {
       const snapshot = await getDocs(collection(db, "children"));
-      const updates = snapshot.docs.map(docSnap =>
-        updateDoc(doc(db, "children", docSnap.id), { status: "pendiente" })
-      );
-      await Promise.all(updates);
+      for (const docSnap of snapshot.docs) {
+        const child = docSnap.data();
+        await updateDoc(doc(db, "children", docSnap.id), { status: "pendiente" });
+
+        if (child.email) {
+          const emailSubject = "CODI Transport - Estado reiniciado";
+          const emailText = `Estimado/a responsable de ${child.name},\n\nLe informamos que el estado de transporte de ${child.name} ha sido reiniciado a pendiente para un nuevo día.\n\nSaludos cordiales,\nEquipo CODI Transport`;
+          await sendEmail(child.email, emailSubject, emailText);
+        }
+      }
 
       alert("✅ Todos los niños han sido reseteados a pendiente");
-
-      // Recargar la página
       location.reload();
-
-      // Recargar la lista en pantalla
-      onAuthStateChanged(auth, () => {});
 
     } catch (error) {
       console.error("Error al resetear:", error);
