@@ -34,6 +34,13 @@
     </header>
 
     <main>
+      <!-- Alerta sobre CORS-Anywhere -->
+      <div id="cors-alert" class="alert alert-warning alert-dismissible fade show" role="alert">
+        <strong>¡Atención!</strong> Para que el envío de emails funcione correctamente, necesitas activar el proxy CORS-Anywhere visitando 
+        <a href="https://cors-anywhere.herokuapp.com/corsdemo" target="_blank" class="alert-link">este enlace</a> y haciendo clic en "Request temporary access to the demo server".
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      
       <!-- Mensaje de bienvenida (visible solo cuando no hay sesión) -->
       <div id="welcome-section" class="my-5 text-center">
         <div class="py-5">
