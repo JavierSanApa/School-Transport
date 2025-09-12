@@ -1,29 +1,10 @@
 const nodemailer = require('nodemailer');
-const Cors = require('cors');
 
-// Configuración de CORS
-const cors = Cors({
-  origin: [
-    'https://school-transport.web.app',
-    'https://school-transport-ae17e.web.app',
-    'http://localhost:5000',
-    'http://localhost:5001',
-    'http://localhost:5002'
-  ],
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-});
-
-// Función para ejecutar el middleware de CORS
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
+// Función para enviar CORS headers
+function setCorsHeaders(res) {
+  res.setHeader('Access-Control-Allow-Origin', 'https://school-transport-ae17e.web.app'); // tu dominio Firebase
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 // Configuración del transporte de correo
@@ -38,26 +19,24 @@ const createTransporter = () => {
 };
 
 module.exports = async (req, res) => {
-  // Ejecutar middleware de CORS
-  await runMiddleware(req, res, cors);
+  // CORS preflight
+  setCorsHeaders(res);
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  // Solo permitir método POST
+  // Solo POST permitido
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
     const { to, subject, text } = req.body;
-
-    // Validar campos requeridos
     if (!to || !subject || !text) {
       return res.status(400).json({ error: 'Faltan campos requeridos (to, subject, text)' });
     }
 
-    // Crear transporte de correo
     const transporter = createTransporter();
-
-    // Enviar correo
     const info = await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to,
