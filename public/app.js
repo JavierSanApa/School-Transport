@@ -155,6 +155,24 @@ onAuthStateChanged(auth, async (user) => {
               button.disabled = true;
               child.status = 'entregado';
             }
+
+            // 📧 Abrir cliente de correo con mensaje listo
+            const subject = `Estado de ${child.name}`;
+            let body = "";
+
+            if (newStatus === 'recogido') {
+              body = `Estimado/a responsable de ${child.name},%0D%0A%0D%0A` +
+                    `${child.name} ha sido recogido en su casa/punto de encuentro por ${user.displayName}.%0D%0A%0D%0A` +
+                    `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+            } else if (newStatus === 'entregado') {
+              body = `Estimado/a responsable de ${child.name},%0D%0A%0D%0A` +
+                    `${child.name} ha sido entregado en el colegio por ${user.displayName}.%0D%0A%0D%0A` +
+                    `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+            }
+
+            window.location.href = `mailto:${child.email}?subject=${encodeURIComponent(subject)}&body=${body}`;
+
+
           } catch (error) {
             console.error("Error al actualizar:", error);
             button.disabled = false;
