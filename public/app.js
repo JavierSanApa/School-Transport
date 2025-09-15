@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } 
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, updateDoc } 
+import { getFirestore, collection, getDocs, doc, updateDoc, query, where } 
   from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 // ⚡ Configuración de Firebase
@@ -64,19 +64,21 @@ onAuthStateChanged(auth, async (user) => {
       </li>
     `;
 
-    // Cargar niños desde Firestore
     try {
-      const snapshot = await getDocs(collection(db, "children"));
+      // 🔥 Solo los niños asignados al usuario logueado
+      const q = query(
+        collection(db, "children"),
+        where("responsible", "==", user.uid)
+      );
+      const snapshot = await getDocs(q);
 
-      // Limpiar el indicador de carga
       childrenList.innerHTML = "";
 
-      // Si no hay niños, mostrar mensaje
       if (snapshot.empty) {
         childrenList.innerHTML = `
           <li class="list-group-item text-center py-4">
             <i class="bi bi-exclamation-circle text-warning fs-1"></i>
-            <p class="mt-2">No hay niños registrados en el sistema</p>
+            <p class="mt-2">No tienes niños asignados</p>
           </li>
         `;
         return;
@@ -87,11 +89,9 @@ onAuthStateChanged(auth, async (user) => {
         const li = document.createElement("li");
         li.className = "list-group-item";
 
-        // Crear un contenedor para la información del niño
+        // Info del niño
         const childInfo = document.createElement("div");
         childInfo.className = "d-flex align-items-center";
-
-        // Información del niño
         childInfo.innerHTML = `
           <i class="bi bi-person-badge me-3 fs-4 text-primary"></i>
           <div>
@@ -105,7 +105,7 @@ onAuthStateChanged(auth, async (user) => {
           </div>
         `;
 
-        // Crear botón dinámico
+        // Botón dinámico
         const button = document.createElement("button");
         button.className = "btn btn-sm mt-2 mt-sm-0";
 
@@ -121,7 +121,7 @@ onAuthStateChanged(auth, async (user) => {
           button.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar como recogido`;
         }
 
-        // Evento del botón
+        // Evento botón
         button.addEventListener("click", async () => {
           try {
             button.disabled = true;
@@ -136,7 +136,7 @@ onAuthStateChanged(auth, async (user) => {
 
             await updateDoc(doc(db, "children", docSnap.id), { status: newStatus });
 
-            // Actualizar UI
+            // Actualizar badge y botón
             const statusBadge = childInfo.querySelector('.badge');
             if (newStatus === 'recogido') {
               statusBadge.className = "ms-2 badge bg-success rounded-pill";
@@ -156,7 +156,7 @@ onAuthStateChanged(auth, async (user) => {
               child.status = 'entregado';
             }
 
-            // 📧 Abrir cliente de correo con mensaje listo
+            // 📧 Correo automático en cliente
             const subject = `Estado de ${child.name}`;
             let body = "";
 
@@ -172,7 +172,6 @@ onAuthStateChanged(auth, async (user) => {
 
             window.location.href = `mailto:${child.email}?subject=${encodeURIComponent(subject)}&body=${body}`;
 
-
           } catch (error) {
             console.error("Error al actualizar:", error);
             button.disabled = false;
@@ -180,7 +179,6 @@ onAuthStateChanged(auth, async (user) => {
           }
         });
 
-        // Añadir elementos a la lista
         li.appendChild(childInfo);
         li.appendChild(button);
         childrenList.appendChild(li);
@@ -197,46 +195,34 @@ onAuthStateChanged(auth, async (user) => {
           </button>
         </li>
       `;
-
       document.getElementById("retry-btn").addEventListener("click", () => {
         onAuthStateChanged(auth, () => {});
       });
     }
 
   } else {
-    // Mostrar sección de login y bienvenida
+    // Mostrar login
     loginSection.classList.remove("d-none");
     welcomeSection.classList.remove("d-none");
-
-    // Ocultar sección de usuario y niños
     userSection.classList.add("d-none");
     childrenSection.classList.add("d-none");
   }
 });
 
-// Botón resetear estados a "pendiente"
+// Botón resetear estados
 const resetBtn = document.getElementById("reset-btn");
-
 if (resetBtn) {
   resetBtn.addEventListener("click", async () => {
     resetBtn.disabled = true;
     resetBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Reseteando...`;
-
     try {
       const snapshot = await getDocs(collection(db, "children"));
       const updates = snapshot.docs.map(docSnap =>
         updateDoc(doc(db, "children", docSnap.id), { status: "pendiente" })
       );
       await Promise.all(updates);
-
       alert("✅ Todos los niños han sido reseteados a pendiente");
-
-      // Recargar la página
       location.reload();
-
-      // Recargar la lista en pantalla
-      onAuthStateChanged(auth, () => {});
-
     } catch (error) {
       console.error("Error al resetear:", error);
       alert("❌ Error al resetear los estados");
