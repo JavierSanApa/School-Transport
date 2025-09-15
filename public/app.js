@@ -232,3 +232,33 @@ if (resetBtn) {
     }
   });
 }
+
+
+import { writeBatch } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+// ⚡ Función temporal para insertar niños
+async function insertChildren() {
+  const batch = writeBatch(db);
+
+  const children = [
+    { id: "3", name: "María López", address: "Calle B", email: "maria@test.com", phone: "222222222", status: "pendiente",
+      responsible: "UtD7hE76hkUSWPJpGHDea8pYA452"},
+    { id: "4", name: "Pedro Gómez", address: "Calle C", email: "pedro@test.com", phone: "333333333", status: "pendiente",
+      responsible: "pdPx0BVtBmavIkOrmB10GUzIxvB3"},
+  ];
+
+  children.forEach(child => {
+    const ref = doc(db, "children", child.id);
+    batch.set(ref, child);
+  });
+
+  try {
+    await batch.commit();
+    console.log("✅ Niños insertados correctamente");
+  } catch (error) {
+    console.error("❌ Error insertando niños:", error);
+  }
+}
+
+// ⚠️ Llamar manualmente solo una vez para cargar datos
+// insertChildren();
