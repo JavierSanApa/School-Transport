@@ -162,12 +162,12 @@ onAuthStateChanged(auth, async (user) => {
 
             if (newStatus === 'recogido') {
               body = `Estimado/a responsable de ${child.name},%0D%0A%0D%0A` +
-                    `${child.name} ha sido recogido en su casa/punto de encuentro por ${user.displayName}.%0D%0A%0D%0A` +
-                    `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+                    `${child.name} ha sido recogido por ${user.displayName}.%0D%0A%0D%0A` +
+                    `Saludos cordiales,%0D%0AEquipo CODI Transport, Asociación Barró.`;
             } else if (newStatus === 'entregado') {
               body = `Estimado/a responsable de ${child.name},%0D%0A%0D%0A` +
-                    `${child.name} ha sido entregado en el colegio por ${user.displayName}.%0D%0A%0D%0A` +
-                    `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+                    `${child.name} ha sido entregado por ${user.displayName}.%0D%0A%0D%0A` +
+                    `Saludos cordiales,%0D%0AEquipo CODI Transport, Asociación Barró.`;
             }
 
             window.location.href = `mailto:${child.email}?subject=${encodeURIComponent(subject)}&body=${body}`;
@@ -183,7 +183,7 @@ onAuthStateChanged(auth, async (user) => {
         li.appendChild(button);
         childrenList.appendChild(li);
       });
-      // 🔥 Ajustar color y texto del botón "Marcar todos" según el estado actual de los niños
+      // Ajustar color y texto del botón "Marcar todos" según el estado actual de los niños
       const markAllBtn = document.getElementById("mark-all-btn");
       if (markAllBtn) {
         let allPending = true;
@@ -296,73 +296,106 @@ async function insertChildren() {
 
 // Botón marcar todos
 const markAllBtn = document.getElementById("mark-all-btn");
+let markAllStatus = 'pendiente'; // Estado inicial del botón
+
 if (markAllBtn) {
   markAllBtn.addEventListener("click", async () => {
     markAllBtn.disabled = true;
-    markAllBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Actualizando...`;
+
+    // Cambiar texto según el estado
+    if (markAllStatus === 'pendiente') {
+      markAllBtn.className = "btn btn-sm btn-success";
+      markAllBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Marcando como recogidos...`;
+    } else if (markAllStatus === 'recogido') {
+      markAllBtn.className = "btn btn-sm btn-warning";
+      markAllBtn.innerHTML = `<i class="bi bi-hourglass-split me-1"></i> Marcando como entregados...`;
+    }
 
     try {
+      // 🔥 Solo los niños del responsable logueado
       const q = query(
         collection(db, "children"),
         where("responsible", "==", auth.currentUser.uid)
       );
       const snapshot = await getDocs(q);
 
-      let emails = [];
-      let newStatus = null;
+      if (snapshot.empty) {
+        alert("No tienes niños asignados");
+        markAllBtn.disabled = false;
+        return;
+      }
 
-      // Tomamos el estado del primer niño para decidir qué hacer
-      snapshot.forEach(docSnap => {
-        const child = docSnap.data();
-        if (!newStatus) {
-          if (child.status === "pendiente" || !child.status) {
-            newStatus = "recogido";
-          } else if (child.status === "recogido") {
-            newStatus = "entregado";
-          } else {
-            newStatus = "entregado";
-          }
-        }
-      });
-
-      const updates = snapshot.docs.map(docSnap =>
-        updateDoc(doc(db, "children", docSnap.id), { status: newStatus })
-      );
-
-      snapshot.forEach(docSnap => {
+      // Recoger emails y referencias de documentos
+      const emails = [];
+      const updates = snapshot.docs.map(docSnap => {
         const child = docSnap.data();
         emails.push(child.email);
+
+        let newStatus = markAllStatus === 'pendiente' ? 'recogido' : 'entregado';
+        return updateDoc(doc(db, "children", docSnap.id), { status: newStatus });
       });
 
       await Promise.all(updates);
 
-      // 📧 Email genérico
-      let subject, body;
-      if (newStatus === "recogido") {
-        subject = "Estado del transporte escolar";
-        body = `Estimados padres,%0D%0A%0D%0A` +
-               `Todos los niños han sido recogidos en sus casas/puntos de encuentro.%0D%0A%0D%0A` +
-               `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+      // Actualizar UI de la lista
+      snapshot.docs.forEach(docSnap => {
+        const child = docSnap.data();
+        const li = Array.from(childrenList.children).find(li =>
+          li.querySelector('p strong')?.textContent === "Nombre:" &&
+          li.querySelector('p strong')?.nextSibling.textContent.trim() === child.name
+        );
 
-        markAllBtn.className = "btn btn-warning btn-sm";
-        markAllBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar todos entregados`;
-      } else if (newStatus === "entregado") {
-        subject = "Estado del transporte escolar";
-        body = `Estimados padres,%0D%0A%0D%0A` +
-               `Todos los niños han sido entregados en el colegio.%0D%0A%0D%0A` +
-               `Saludos cordiales,%0D%0AEquipo CODI Transport`;
+        if (!li) return;
 
-        markAllBtn.className = "btn btn-secondary btn-sm";
-        markAllBtn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Todos entregados`;
-        markAllBtn.disabled = true;
+        const statusBadge = li.querySelector('.badge');
+        const button = li.querySelector('button');
+
+        if (markAllStatus === 'pendiente') {
+          // Marcado como recogido
+          statusBadge.className = "ms-2 badge bg-success rounded-pill";
+          statusBadge.textContent = "recogido";
+
+          button.className = "btn btn-sm btn-warning mt-2 mt-sm-0";
+          button.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar como entregado`;
+          button.disabled = false;
+        } else {
+          // Marcado como entregado
+          statusBadge.className = "ms-2 badge bg-primary rounded-pill";
+          statusBadge.textContent = "entregado";
+
+          button.className = "btn btn-sm btn-secondary mt-2 mt-sm-0";
+          button.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Entregado`;
+          button.disabled = true;
+        }
+      });
+
+      // Abrir mailto como evento de usuario
+      const subject = markAllStatus === 'pendiente' ? "Niños recogidos" : "Niños entregados";
+      const body = markAllStatus === 'pendiente' ?
+        `Estimados responsables. Los niños han sido recogidos por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.` :
+        `Estimados responsables. Los niños han sido entregados por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.`;
+
+      setTimeout(() => {
+        window.location.href = `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      }, 0);
+
+      // Cambiar estado del botón para siguiente click
+      markAllStatus = markAllStatus === 'pendiente' ? 'recogido' : 'entregado';
+
+      // Actualizar texto del botón según siguiente acción
+      if (markAllStatus === 'recogido') {
+        markAllBtn.className = "btn btn-sm btn-success";
+        markAllBtn.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar todos como recogidos`;
+      } else {
+        markAllBtn.className = "btn btn-sm btn-warning";
+        markAllBtn.innerHTML = `<i class="bi bi-box-arrow-in-right me-1"></i> Marcar todos como entregados`;
       }
-
-      window.location.href = `mailto:${emails.join(",")}?subject=${encodeURIComponent(subject)}&body=${body}`;
-      location.reload();
 
     } catch (error) {
       console.error("Error al marcar todos:", error);
-      alert("❌ Error al actualizar los estados");
+      alert("❌ Error al marcar todos");
+    } finally {
+      markAllBtn.disabled = false;
     }
   });
 }
