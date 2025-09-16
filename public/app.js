@@ -325,17 +325,34 @@ if (markAllBtn) {
         return;
       }
 
-      // Recoger emails y referencias de documentos
       const emails = [];
-      const updates = snapshot.docs.map(docSnap => {
+      const updates = [];
+      let bodyLines = [];
+
+      snapshot.docs.forEach(docSnap => {
         const child = docSnap.data();
         emails.push(child.email);
 
         let newStatus = markAllStatus === 'pendiente' ? 'recogido' : 'entregado';
-        return updateDoc(doc(db, "children", docSnap.id), { status: newStatus });
+        updates.push(updateDoc(doc(db, "children", docSnap.id), { status: newStatus }));
+
+        // Construir mensaje con saltos de línea
+        if (newStatus === 'recogido') {
+          bodyLines.push(`${child.name} ha sido recogido.`);
+        } else {
+          bodyLines.push(`${child.name} ha sido entregado.`);
+        }
       });
 
       await Promise.all(updates);
+
+      // Construir cuerpo del correo
+      const body = `Estimados responsables,\n\n${bodyLines.join('\n')}\n\nSaludos cordiales,\nEquipo CODI Transport`;
+
+      // Abrir mailto
+      setTimeout(() => {
+        window.location.href = `mailto:${emails.join(',')}?subject=${encodeURIComponent(markAllStatus === 'pendiente' ? 'Niños recogidos' : 'Niños entregados')}&body=${encodeURIComponent(body)}`;
+      }, 0);
 
       // Actualizar UI de la lista
       snapshot.docs.forEach(docSnap => {
@@ -344,7 +361,6 @@ if (markAllBtn) {
           li.querySelector('p strong')?.textContent === "Nombre:" &&
           li.querySelector('p strong')?.nextSibling.textContent.trim() === child.name
         );
-
         if (!li) return;
 
         const statusBadge = li.querySelector('.badge');
@@ -369,19 +385,8 @@ if (markAllBtn) {
         }
       });
 
-      // Abrir mailto como evento de usuario
-      const subject = markAllStatus === 'pendiente' ? "Niños recogidos" : "Niños entregados";
-      const body = markAllStatus === 'pendiente' ?
-        `Estimados responsables. Los niños han sido recogidos por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.` :
-        `Estimados responsables. Los niños han sido entregados por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.`;
-      setTimeout(() => {
-        window.location.href = `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      }, 0);
-
       // Cambiar estado del botón para siguiente click
       markAllStatus = markAllStatus === 'pendiente' ? 'recogido' : 'entregado';
-
-      // Actualizar texto del botón según siguiente acción
       if (markAllStatus === 'recogido') {
         markAllBtn.className = "btn btn-sm btn-success";
         markAllBtn.innerHTML = `<i class="bi bi-check-circle me-1"></i> Marcar todos como recogidos`;
