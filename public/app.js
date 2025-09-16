@@ -374,7 +374,6 @@ if (markAllBtn) {
       const body = markAllStatus === 'pendiente' ?
         `Estimados responsables. Los niños han sido recogidos por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.` :
         `Estimados responsables. Los niños han sido entregados por ${auth.currentUser.displayName}. Saludos cordiales, Equipo CODI, Asociación Barró.`;
-
       setTimeout(() => {
         window.location.href = `mailto:${emails.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       }, 0);
