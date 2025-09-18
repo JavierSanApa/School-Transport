@@ -6,39 +6,16 @@ body {
   flex-direction: column;
 }
 
-/* Fuente específica para la lista de niños */
-#children-section {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+#children-section { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 
-/* Contenedor */
-.container {
-  max-width: 100%;
-  padding: 0 15px;
-}
-
+.container { max-width: 100%; padding: 0 15px; }
 @media (min-width: 768px) { .container { max-width: 720px; } }
 @media (min-width: 992px) { .container { max-width: 960px; } }
 
-/* Header */
-header {
-  border-bottom: 1px solid #e9ecef;
-  padding-bottom: 1rem;
-}
+header { border-bottom: 1px solid #e9ecef; padding-bottom: 1rem; }
+header h1 i { font-size: 2.5rem; vertical-align: middle; transform: translateY(-3px); display: inline-block; }
+@media (max-width: 576px) { header h1 i { font-size: 2rem; } header h1 { font-size: 1.8rem; } }
 
-header h1 i {
-  font-size: 2.5rem;
-  vertical-align: middle;
-  transform: translateY(-3px);
-  display: inline-block;
-}
-
-@media (max-width: 576px) {
-  header h1 i { font-size: 2rem; }
-  header h1 { font-size: 1.8rem; }
-}
-
-/* Lista de niños */
 .list-group-item {
   border-left: 5px solid transparent;
   transition: background-color 0.3s, border-color 0.3s;
@@ -47,51 +24,33 @@ header h1 i {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
 }
-
-@media (min-width: 576px) {
-  .list-group-item { flex-direction: row; justify-content: space-between; align-items: center; }
-}
-
+@media (min-width: 576px) { .list-group-item { flex-direction: row; justify-content: space-between; align-items: center; } }
 .list-group-item:hover { background-color: #f1f3f5; }
 
-/* Estados de los niños */
 .list-group-item[data-status="pendiente"] { border-color: #ffc107; background-color: #fff8e1; }
 .list-group-item[data-status="recogido"] { border-color: #198754; background-color: #e6f4ea; }
 .list-group-item[data-status="entregado"] { border-color: #0d6efd; background-color: #e7f0ff; }
 
-/* Badges con iconos */
-.list-group-item .badge {
-  font-size: 0.9rem;
-  padding: 0.3em 0.6em;
-}
+.list-group-item .badge { font-size: 0.9rem; padding: 0.3em 0.6em; }
 .list-group-item .badge[data-status="pendiente"]::before { content: "\f017"; font-family: "Bootstrap Icons"; margin-right: 0.3rem; }
 .list-group-item .badge[data-status="recogido"]::before { content: "\f1db"; font-family: "Bootstrap Icons"; margin-right: 0.3rem; }
 .list-group-item .badge[data-status="entregado"]::before { content: "\f0c8"; font-family: "Bootstrap Icons"; margin-right: 0.3rem; }
 
-/* Botones */
-.btn {
-  border-radius: 4px;
-  transition: all 0.3s;
-}
+.btn { border-radius: 4px; transition: all 0.3s; }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
 #children-section .card-header .btn { min-width: 150px; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
-.list-group-item button { transition: all 0.3s; }
 .list-group-item button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 
-/* Tarjetas */
 .card { border-radius: 8px; overflow: hidden; transition: box-shadow 0.3s; }
 .card:hover { box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15); }
 
-/* Logos */
 #welcome-section img { max-width: 150px; height: auto; margin: 0 auto; display: block; }
 @media (max-width: 576px) { #welcome-section img { max-width: 120px; } }
 @media (min-width: 992px) { #welcome-section img { max-width: 180px; } }
 
-/* Footer */
 footer img { height: 20px; width: auto; vertical-align: middle; margin-right: 5px; }
 @media (max-width: 576px) { footer img { height: 16px; } }
 
-/* Ajustes móviles para lista y botones */
 @media (max-width: 576px) {
   .list-group-item { gap: 0.25rem; padding: 0.5rem 0.75rem; }
   .list-group-item div p { margin-bottom: 0.2rem; font-size: 0.9rem; }
